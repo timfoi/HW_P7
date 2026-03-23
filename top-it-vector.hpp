@@ -121,15 +121,30 @@ topit::Vector<T>::~Vector()
 }
 
 template <class T>
-void topit::Vector<T>::pushBack(const T &val)
+void topit::Vector<T>::pushBack(const T &)
 {
-  Vector<T> cpy(size_ + 1);
-  cpy[size_] = val;
-  for (size_t i = 0; i < size_; ++i)
+  if (size_ == capacity_)
   {
-    cpy[i] = (*this)[i];
+    size_t newCap = (capacity_ == 0 ? 1 : capacity_ * 2);
+    T *temp = new T[newCap];
+    try
+    {
+      for (size_t i = 0; i < capacity_; ++i)
+      {
+        temp[i] = data_[i];
+      }
+    }
+    catch (...)
+    {
+      delete[] temp;
+      throw;
+    }
+    delete[] data_;
+    data_ = temp;
+    capacity_ = newCap;
   }
-  swap(cpy);
+
+  data_[size_++] = val;
 }
 
 #endif
