@@ -51,6 +51,13 @@ bool testCapacity()
   return v.getCapacity() == 1;
 }
 
+bool testSize()
+{
+  topit::Vector<int> v;
+  v.pushBack(1);
+  return v.getSize() == 1;
+}
+
 int main()
 {
   using test_t = bool (*)();
@@ -60,7 +67,8 @@ int main()
                     {"Inbound access elements", testElementAccess},
                     {"Sizes must be equal as elements", testCopyConstructor},
                     {"The element should be added to the beginning of vector", testPushFront},
-                    {"Capacity of vector should be correct", testCapacity}};
+                    {"Capacity of vector should be correct", testCapacity},
+                    {"Vector size should change when elements are added", testSize}};
 
   const size_t count = sizeof(tests) / sizeof(pair_t);
   std::cout << std::boolalpha;
