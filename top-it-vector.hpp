@@ -7,12 +7,13 @@
 namespace topit
 {
   template <class T>
-  struct Vector
+  class Vector
   {
+  public:
     Vector();
-    Vector(const Vector<T> &);
+    Vector(const Vector<T> &rhs);
     ~Vector();
-    Vector<T> &operator=(const Vector<T> &);
+    Vector<T> &operator=(const Vector<T> &rhs);
 
     void swap(Vector<T> &rhs) noexcept;
 
@@ -23,34 +24,54 @@ namespace topit
     T &operator[](size_t id) noexcept;
     const T &operator[](size_t id) const noexcept;
 
-    void pushBack(const T &);
+    void pushBack(const T &val);
     void popBack();
-    void pushFront(const T &);
+    void pushFront(const T &val);
 
   private:
     T *data_;
-    size_t size_, capacity_;
+    size_t size_;
+    size_t capacity_;
 
     explicit Vector(size_t k);
   };
 }
 
 template <class T>
-size_t topit::Vector<T>::getCapacity() const noexcept
+topit::Vector<T>::Vector() : data_(nullptr),
+                             size_(0),
+                             capacity_(0)
 {
-  return capacity_;
 }
 
 template <class T>
-void topit::Vector<T>::pushFront(const T &val)
+topit::Vector<T>::Vector(size_t k) : data_(new T[k]),
+                                     size_(k),
+                                     capacity_(k)
 {
-  Vector<T> cpy(size_ + 1);
-  cpy[0] = val;
-  for (size_t i = 1; i < cpy.getSize(); ++i)
+}
+
+template <class T>
+topit::Vector<T>::Vector(const Vector<T> &rhs) : Vector(rhs.getSize())
+{
+  for (size_t i = 0; i < size_; ++i)
   {
-    cpy[i] = (*this)[i - 1];
+    data_[i] = rhs[i];
   }
-  swap(cpy);
+}
+
+template <class T>
+topit::Vector<T>::~Vector()
+{
+  delete[] data_;
+}
+
+template <class T>
+topit::Vector<T> &topit::Vector<T>::operator=(const Vector<T> &rhs)
+{
+  Vector<T> copy(rhs);
+  swap(copy);
+  return *this;
 }
 
 template <class T>
@@ -59,6 +80,24 @@ void topit::Vector<T>::swap(Vector<T> &rhs) noexcept
   std::swap(rhs.data_, data_);
   std::swap(rhs.size_, size_);
   std::swap(rhs.capacity_, capacity_);
+}
+
+template <class T>
+bool topit::Vector<T>::isEmpty() const noexcept
+{
+  return size_ == 0;
+}
+
+template <class T>
+size_t topit::Vector<T>::getSize() const noexcept
+{
+  return size_;
+}
+
+template <class T>
+size_t topit::Vector<T>::getCapacity() const noexcept
+{
+  return capacity_;
 }
 
 template <class T>
@@ -76,75 +115,78 @@ const T &topit::Vector<T>::operator[](size_t id) const noexcept
 }
 
 template <class T>
-size_t topit::Vector<T>::getSize() const noexcept
-{
-  return size_;
-}
-
-template <class T>
-topit::Vector<T>::Vector(size_t k) : data_(new T[k]), size_(k), capacity_(k)
-{
-}
-
-template <class T>
-topit::Vector<T> &topit::Vector<T>::operator=(const Vector<T> &rhs)
-{
-  Vector<T> cpy(rhs);
-  swap(cpy);
-  return *this;
-}
-
-template <class T>
-topit::Vector<T>::Vector(const Vector<T> &rhs) : Vector(rhs.getSize())
-{
-  for (size_t i = 0; i < getSize(); ++i)
-  {
-    data_[i] = rhs[i];
-  }
-}
-
-template <class T>
-bool topit::Vector<T>::isEmpty() const noexcept
-{
-  return !size_;
-}
-
-template <class T>
-topit::Vector<T>::Vector() : data_(nullptr), size_(0), capacity_(0)
-{
-}
-
-template <class T>
-topit::Vector<T>::~Vector()
-{
-  delete[] data_;
-}
-
-template <class T>
-void topit::Vector<T>::pushBack(const T &)
+void topit::Vector<T>::pushBack(const T &val)
 {
   if (size_ == capacity_)
   {
-    size_t newCap = (capacity_ == 0 ? 1 : capacity_ * 2);
-    T *temp = new T[newCap];
+    size_t newCapacity = (capacity_ == 0 ? 1 : capacity_ * 2);
+    T *newData = new T[newCapacity];
+
     try
     {
-      for (size_t i = 0; i < capacity_; ++i)
+      for (size_t i = 0; i < size_; ++i)
       {
-        temp[i] = data_[i];
+        newData[i] = data_[i];
       }
     }
     catch (...)
     {
-      delete[] temp;
+      delete[] newData;
       throw;
     }
+
     delete[] data_;
-    data_ = temp;
-    capacity_ = newCap;
+    data_ = newData;
+    capacity_ = newCapacity;
   }
 
-  data_[size_++] = val;
+  data_[size_] = val;
+  ++size_;
+}
+
+template <class T>
+void topit::Vector<T>::popBack()
+{
+  assert(size_ > 1);
+  --size_;
+}
+
+template <class T>
+void topit::Vector<T>::pushFront(const T &val)
+{
+  if (size_ == capacity_)
+  {
+    size_t newCapacity = (capacity_ == 0 ? 1 : capacity_ * 2);
+    T *newData = new T[newCapacity];
+
+    try
+    {
+      newData[0] = val;
+      for (size_t i = 0; i < size_; ++i)
+      {
+        newData[i + 1] = data_[i];
+      }
+    }
+    catch (...)
+    {
+      delete[] newData;
+      throw;
+    }
+
+    delete[] data_;
+    data_ = newData;
+    capacity_ = newCapacity;
+    ++size_;
+    return;
+  }
+
+  for (size_t i = size_; i > 0; --i)
+  {
+    data_[i] = data_[i - 1];
+  }
+
+  data_[0] = val;
+  ++size_;
 }
 
 #endif

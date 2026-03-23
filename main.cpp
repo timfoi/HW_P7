@@ -1,6 +1,6 @@
 #include "top-it-vector.hpp"
 #include <iostream>
-#include <cassert>
+#include <utility>
 
 bool testDefaultVector()
 {
@@ -29,18 +29,18 @@ bool testCopyConstructor()
   v.pushBack(1);
   topit::Vector<int> yav = v;
   bool isAllEqual = v.getSize() == yav.getSize();
-  for (size_t i = 0; isAllEqual && i < v.getSize(); ++i)
+  for (size_t i = 0; i < v.getSize() && isAllEqual; ++i)
   {
-    isAllEqual = isAllEqual && (v[i] == yav[i]);
+    isAllEqual = isAllEqual && v[i] == yav[i];
   }
   return isAllEqual;
 }
+
 bool testPushFront()
 {
-
   topit::Vector<int> v;
-  v.pushBack(1);
-  v.pushBack(2);
+  v.pushFront(1);
+  v.pushFront(2);
   return v[0] == 2 && v[1] == 1;
 }
 
@@ -62,24 +62,28 @@ int main()
 {
   using test_t = bool (*)();
   using pair_t = std::pair<const char *, test_t>;
-  pair_t tests[] = {{"Default vector should be empty", testDefaultVector},
-                    {"Vector with any value is not empty", testVectorWithValue},
-                    {"Inbound access elements", testElementAccess},
-                    {"Sizes must be equal as elements", testCopyConstructor},
-                    {"The element should be added to the beginning of vector", testPushFront},
-                    {"Capacity of vector should be correct", testCapacity},
-                    {"Vector size should change when elements are added", testSize}};
+
+  pair_t tests[] =
+      {
+          {"Default vector should be empty", testDefaultVector},
+          {"Vector with any value is not empty", testVectorWithValue},
+          {"Inbound access elements", testElementAccess},
+          {"Copy constructor should copy all elements", testCopyConstructor},
+          {"The element should be added to the beginning of vector", testPushFront},
+          {"Capacity of vector should be correct", testCapacity},
+          {"Vector size should change when elements are added", testSize}};
 
   const size_t count = sizeof(tests) / sizeof(pair_t);
+
   std::cout << std::boolalpha;
   bool pass = true;
+
   for (size_t i = 0; i < count; ++i)
   {
-    bool res = tests[i].second();
-    std::cout << res << ": ";
-    std::cout << tests[i].first << '\n';
+    const bool res = tests[i].second();
+    std::cout << res << ": " << tests[i].first << '\n';
     pass = pass && res;
   }
-  std::cout << pass;
-  std::cout << ": RESULT\n";
+
+  std::cout << pass << ": RESULT\n";
 }
