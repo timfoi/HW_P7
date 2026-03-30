@@ -8,9 +8,47 @@
 namespace topit
 {
   template <class T>
-  class Vector
+  struct VIter
   {
-  public:
+    explicit VIter(Vector<T> &v, size_t pos);
+    bool operator==(const VIter<T> &rhs) const noexcept;
+    bool operator!=(const VIter<T> &rhs) const noexcept;
+    VIter<T> &operator++() noexcept;
+    VIter<T> &operator--() noexcept;
+    VIter<T> operator+(size_t i) noexcept;
+    VIter<T> operator-(size_t i) noexcept;
+    T &operator*() const;
+
+  private:
+    Vector<T> &v_;
+    size_t pos_;
+    friend class Vector<T>;
+  };
+
+  template <class T>
+  struct VCIter
+  {
+    explicit VCIter(const Vector<T> &v, size_t pos);
+    bool operator==(const VCIter<T> &rhs) const noexcept;
+    bool operator!=(const VCIter<T> &rhs) const noexcept;
+    VCIter<T> &operator++() noexcept;
+    VCIter<T> &operator--() noexcept;
+    VCIter<T> operator+(size_t i) noexcept;
+    VCIter<T> operator-(size_t i) noexcept;
+    const T &operator*() const;
+
+  private:
+    const Vector<T> &v_;
+    size_t pos_;
+    friend class Vector<T>;
+  };
+
+  template <class T>
+  struct Vector
+  {
+    using iterator = VIter<T>;
+    using const_iterator = VCIter<T>;
+
     Vector();
     Vector(const Vector<T> &rhs);
     Vector(Vector<T> &&rhs) noexcept;
@@ -33,6 +71,14 @@ namespace topit
     void popBack();
     void pushFront(const T &val);
 
+    iterator begin() noexcept;
+    iterator end() noexcept;
+
+    const_iterator begin() const noexcept;
+    const_iterator end() const noexcept;
+    const_iterator cbegin() const noexcept;
+    const_iterator cend() const noexcept;
+
   private:
     T *data_;
     size_t size_;
@@ -40,6 +86,16 @@ namespace topit
 
     explicit Vector(size_t k);
   };
+}
+
+template <class T>
+topit::Vector<T>::Vector(std::initializer_list<T> il) : Vector(il.size())
+{
+  size_t i = 0;
+  for (auto &&val : il)
+  {
+    data_[i++] = val;
+  }
 }
 
 template <class T>

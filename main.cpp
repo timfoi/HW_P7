@@ -28,10 +28,11 @@ bool testCopyConstructor()
   topit::Vector<int> v;
   v.pushBack(1);
   topit::Vector<int> yav = v;
+
   bool isAllEqual = v.getSize() == yav.getSize();
   for (size_t i = 0; i < v.getSize() && isAllEqual; ++i)
   {
-    isAllEqual = isAllEqual && v[i] == yav[i];
+    isAllEqual = isAllEqual && (v[i] == yav[i]);
   }
   return isAllEqual;
 }
@@ -58,6 +59,20 @@ bool testSize()
   return v.getSize() == 1;
 }
 
+bool testPopBack()
+{
+  topit::Vector<int> v;
+  v.pushBack(10);
+  v.popBack();
+  return v.isEmpty();
+}
+
+bool testInitializerList()
+{
+  topit::Vector<int> v{1, 2};
+  return v.getSize() == 2;
+}
+
 int main()
 {
   using test_t = bool (*)();
@@ -71,7 +86,9 @@ int main()
           {"Copy constructor should copy all elements", testCopyConstructor},
           {"The element should be added to the beginning of vector", testPushFront},
           {"Capacity of vector should be correct", testCapacity},
-          {"Vector size should change when elements are added", testSize}};
+          {"Vector size should change when elements are added", testSize},
+          {"popBack should remove the last element", testPopBack},
+          {"Initializer list should initialize vector with given values", testInitializerList}};
 
   const size_t count = sizeof(tests) / sizeof(pair_t);
 
