@@ -49,8 +49,6 @@ namespace topit
   template <class T>
   struct Vector
   {
-    using iterator = VIter<T>;
-    using const_iterator = VCIter<T>;
 
     Vector();
     Vector(const Vector<T> &rhs);
@@ -75,13 +73,17 @@ namespace topit
     void popBack();
     void pushFront(const T &val);
 
-    iterator begin() noexcept;
-    iterator end() noexcept;
+    VIter<T> begin() noexcept;
+    VIter<T> end() noexcept;
+    VCIter<T> begin() const noexcept;
+    VCIter<T> end() const noexcept;
+    VCIter<T> cbegin() const noexcept;
+    VCIter<T> cend() const noexcept;
 
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
-    const_iterator cbegin() const noexcept;
-    const_iterator cend() const noexcept;
+    void insert(size_t i, const T &val);
+    void erase(size_t i);
+    void insert(size_t i, const Vector<T> &rhs, size_t beg, size_t end);
+    void erase(size_t beg, size_t end);
 
   private:
     T *data_;
@@ -201,39 +203,165 @@ const T &topit::VCIter<T>::operator*() const
 }
 
 template <class T>
-typename topit::Vector<T>::iterator topit::Vector<T>::begin() noexcept
+topit::VIter<T> topit::Vector<T>::begin() noexcept
 {
-  return iterator(*this, 0);
+  return VIter<T>(*this, 0);
 }
 
 template <class T>
-typename topit::Vector<T>::iterator topit::Vector<T>::end() noexcept
+topit::VIter<T> topit::Vector<T>::end() noexcept
 {
-  return iterator(*this, size_);
+  return VIter<T>(*this, size_);
 }
 
 template <class T>
-typename topit::Vector<T>::const_iterator topit::Vector<T>::begin() const noexcept
+topit::VCIter<T> topit::Vector<T>::begin() const noexcept
 {
-  return const_iterator(*this, 0);
+  return VCIter<T>(*this, 0);
 }
 
 template <class T>
-typename topit::Vector<T>::const_iterator topit::Vector<T>::end() const noexcept
+topit::VCIter<T> topit::Vector<T>::end() const noexcept
 {
-  return const_iterator(*this, size_);
+  return VCIter<T>(*this, size_);
 }
 
 template <class T>
-typename topit::Vector<T>::const_iterator topit::Vector<T>::cbegin() const noexcept
+topit::VCIter<T> topit::Vector<T>::cbegin() const noexcept
 {
-  return const_iterator(*this, 0);
+  return VCIter<T>(*this, 0);
 }
 
 template <class T>
-typename topit::Vector<T>::const_iterator topit::Vector<T>::cend() const noexcept
+topit::VCIter<T> topit::Vector<T>::cend() const noexcept
 {
-  return const_iterator(*this, size_);
+  return VCIter<T>(*this, size_);
+}
+
+template <class T>
+void topit::Vector<T>::insert(size_t i, const T &val)
+{
+  assert(i <= size_);
+
+  size_t newSize = size_ + 1;
+  size_t newCapacity = (capacity_ == 0 ? 1 : capacity_);
+
+  while (newCapacity < newSize)
+  {
+    newCapacity *= 2;
+  }
+
+  T *newData = new T[newCapacity];
+
+  try
+  {
+    for (size_t j = 0; j < i; ++j)
+    {
+      newData[j] = data_[j];
+    }
+
+    newData[i] = val;
+
+    for (size_t j = i; j < size_; ++j)
+    {
+      newData[j + 1] = data_[j];
+    }
+  }
+  catch (...)
+  {
+    delete[] newData;
+    throw;
+  }
+
+  delete[] data_;
+  data_ = newData;
+  size_ = newSize;
+  capacity_ = newCapacity;
+}
+
+template <class T>
+void topit::Vector<T>::erase(size_t i)
+{
+  assert(i < size_);
+
+  for (size_t j = i; j + 1 < size_; ++j)
+  {
+    data_[j] = data_[j + 1];
+  }
+
+  --size_;
+}
+
+template <class T>
+void topit::Vector<T>::insert(size_t i, const Vector<T> &rhs, size_t beg, size_t end)
+{
+  assert(i <= size_);
+  assert(beg <= end);
+  assert(end <= rhs.size_);
+
+  size_t count = end - beg;
+  if (count == 0)
+  {
+    return;
+  }
+
+  size_t newSize = size_ + count;
+  size_t newCapacity = (capacity_ == 0 ? 1 : capacity_);
+
+  while (newCapacity < newSize)
+  {
+    newCapacity *= 2;
+  }
+
+  T *newData = new T[newCapacity];
+
+  try
+  {
+    for (size_t j = 0; j < i; ++j)
+    {
+      newData[j] = data_[j];
+    }
+
+    for (size_t j = 0; j < count; ++j)
+    {
+      newData[i + j] = rhs[beg + j];
+    }
+
+    for (size_t j = i; j < size_; ++j)
+    {
+      newData[j + count] = data_[j];
+    }
+  }
+  catch (...)
+  {
+    delete[] newData;
+    throw;
+  }
+
+  delete[] data_;
+  data_ = newData;
+  size_ = newSize;
+  capacity_ = newCapacity;
+}
+
+template <class T>
+void topit::Vector<T>::erase(size_t beg, size_t end)
+{
+  assert(beg <= end);
+  assert(end <= size_);
+
+  size_t count = end - beg;
+  if (count == 0)
+  {
+    return;
+  }
+
+  for (size_t j = beg; j + count < size_; ++j)
+  {
+    data_[j] = data_[j + count];
+  }
+
+  size_ -= count;
 }
 
 template <class T>
@@ -253,17 +381,22 @@ void topit::Vector<T>::reserve(size_t cap)
   {
     return;
   }
-  T *d = new T[cap];
+  T *d = static_cast<T *>(operator new[](cap * sizeof(T)));
+  size_t i = 0;
   try
   {
     for (size_t i = 0; i < size_; ++i)
     {
-      d[i] = data_[i];
+      new (d + i) T(std::move(data_[i]));
     }
   }
   catch (...)
   {
-    delete[] d;
+    for (size_t j = 0; j < i; ++j)
+    {
+      (d + j)->~T();
+    }
+    operator delete[] d;
     throw;
   }
   delete[] data_;
