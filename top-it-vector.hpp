@@ -1,5 +1,6 @@
 #ifndef TOP_IT_VECTOR_HPP
 #define TOP_IT_VECTOR_HPP
+
 #include <cassert>
 #include <cstddef>
 #include <utility>
@@ -12,8 +13,12 @@ namespace topit
   public:
     Vector();
     Vector(const Vector<T> &rhs);
+    Vector(Vector<T> &&rhs) noexcept;
+    explicit Vector(std::initializer_list<T> il);
+
     ~Vector();
     Vector<T> &operator=(const Vector<T> &rhs);
+    Vector<T> &operator=(Vector<T> &&rhs) noexcept;
 
     void swap(Vector<T> &rhs) noexcept;
 
@@ -61,6 +66,16 @@ topit::Vector<T>::Vector(const Vector<T> &rhs) : Vector(rhs.getSize())
 }
 
 template <class T>
+topit::Vector<T>::Vector(Vector<T> &&rhs) noexcept : data_(rhs.data_),
+                                                     size_(rhs.size_),
+                                                     capacity_(rhs.capacity_)
+{
+  rhs.data_ = nullptr;
+  rhs.size_ = 0;
+  rhs.capacity_ = 0;
+}
+
+template <class T>
 topit::Vector<T>::~Vector()
 {
   delete[] data_;
@@ -69,17 +84,35 @@ topit::Vector<T>::~Vector()
 template <class T>
 topit::Vector<T> &topit::Vector<T>::operator=(const Vector<T> &rhs)
 {
+  if (this == std::addressof(rhs))
+  {
+    return *this;
+  }
+
   Vector<T> copy(rhs);
   swap(copy);
   return *this;
 }
 
 template <class T>
+topit::Vector<T> &topit::Vector<T>::operator=(Vector<T> &&rhs) noexcept
+{
+  if (this == std::addressof(rhs))
+  {
+    return *this;
+  }
+
+  Vector<T> temp(std::move(rhs));
+  swap(temp);
+  return *this;
+}
+
+template <class T>
 void topit::Vector<T>::swap(Vector<T> &rhs) noexcept
 {
-  std::swap(rhs.data_, data_);
-  std::swap(rhs.size_, size_);
-  std::swap(rhs.capacity_, capacity_);
+  std::swap(data_, rhs.data_);
+  std::swap(size_, rhs.size_);
+  std::swap(capacity_, rhs.capacity_);
 }
 
 template <class T>
@@ -92,6 +125,12 @@ template <class T>
 size_t topit::Vector<T>::getSize() const noexcept
 {
   return size_;
+}
+
+template <class T>
+size_t topit::Vector<T>::getCapacity() const noexcept
+{
+  return capacity_;
 }
 
 template <class T>
@@ -147,7 +186,7 @@ void topit::Vector<T>::pushBack(const T &val)
 template <class T>
 void topit::Vector<T>::popBack()
 {
-  assert(size_ > 1);
+  assert(size_ > 0);
   --size_;
 }
 
