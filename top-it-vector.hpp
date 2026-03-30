@@ -8,6 +8,9 @@
 namespace topit
 {
   template <class T>
+  struct Vector;
+
+  template <class T>
   struct VIter
   {
     explicit VIter(Vector<T> &v, size_t pos);
@@ -63,6 +66,7 @@ namespace topit
     bool isEmpty() const noexcept;
     size_t getSize() const noexcept;
     size_t getCapacity() const noexcept;
+    void reserve(size_t cap);
 
     T &operator[](size_t id) noexcept;
     const T &operator[](size_t id) const noexcept;
@@ -89,6 +93,150 @@ namespace topit
 }
 
 template <class T>
+topit::VIter<T>::VIter(Vector<T> &v, size_t pos) : v_(v),
+                                                   pos_(pos)
+{
+}
+
+template <class T>
+bool topit::VIter<T>::operator==(const VIter<T> &rhs) const noexcept
+{
+  return std::addressof(v_) == std::addressof(rhs.v_) && pos_ == rhs.pos_;
+}
+
+template <class T>
+bool topit::VIter<T>::operator!=(const VIter<T> &rhs) const noexcept
+{
+  return !(*this == rhs);
+}
+
+template <class T>
+topit::VIter<T> &topit::VIter<T>::operator++() noexcept
+{
+  ++pos_;
+  return *this;
+}
+
+template <class T>
+topit::VIter<T> &topit::VIter<T>::operator--() noexcept
+{
+  --pos_;
+  return *this;
+}
+
+template <class T>
+topit::VIter<T> topit::VIter<T>::operator+(size_t i) noexcept
+{
+  return VIter<T>(v_, pos_ + i);
+}
+
+template <class T>
+topit::VIter<T> topit::VIter<T>::operator-(size_t i) noexcept
+{
+  return VIter<T>(v_, pos_ - i);
+}
+
+template <class T>
+T &topit::VIter<T>::operator*() const
+{
+  if (pos_ >= v_.getSize())
+  {
+    throw std::out_of_range("Iterator out of range");
+  }
+  return v_[pos_];
+}
+
+template <class T>
+topit::VCIter<T>::VCIter(const Vector<T> &v, size_t pos) : v_(v),
+                                                           pos_(pos)
+{
+}
+
+template <class T>
+bool topit::VCIter<T>::operator==(const VCIter<T> &rhs) const noexcept
+{
+  return std::addressof(v_) == std::addressof(rhs.v_) && pos_ == rhs.pos_;
+}
+
+template <class T>
+bool topit::VCIter<T>::operator!=(const VCIter<T> &rhs) const noexcept
+{
+  return !(*this == rhs);
+}
+
+template <class T>
+topit::VCIter<T> &topit::VCIter<T>::operator++() noexcept
+{
+  ++pos_;
+  return *this;
+}
+
+template <class T>
+topit::VCIter<T> &topit::VCIter<T>::operator--() noexcept
+{
+  --pos_;
+  return *this;
+}
+
+template <class T>
+topit::VCIter<T> topit::VCIter<T>::operator+(size_t i) noexcept
+{
+  return VCIter<T>(v_, pos_ + i);
+}
+
+template <class T>
+topit::VCIter<T> topit::VCIter<T>::operator-(size_t i) noexcept
+{
+  return VCIter<T>(v_, pos_ - i);
+}
+
+template <class T>
+const T &topit::VCIter<T>::operator*() const
+{
+  if (pos_ >= v_.getSize())
+  {
+    throw std::out_of_range("Iterator out of range");
+  }
+  return v_[pos_];
+}
+
+template <class T>
+typename topit::Vector<T>::iterator topit::Vector<T>::begin() noexcept
+{
+  return iterator(*this, 0);
+}
+
+template <class T>
+typename topit::Vector<T>::iterator topit::Vector<T>::end() noexcept
+{
+  return iterator(*this, size_);
+}
+
+template <class T>
+typename topit::Vector<T>::const_iterator topit::Vector<T>::begin() const noexcept
+{
+  return const_iterator(*this, 0);
+}
+
+template <class T>
+typename topit::Vector<T>::const_iterator topit::Vector<T>::end() const noexcept
+{
+  return const_iterator(*this, size_);
+}
+
+template <class T>
+typename topit::Vector<T>::const_iterator topit::Vector<T>::cbegin() const noexcept
+{
+  return const_iterator(*this, 0);
+}
+
+template <class T>
+typename topit::Vector<T>::const_iterator topit::Vector<T>::cend() const noexcept
+{
+  return const_iterator(*this, size_);
+}
+
+template <class T>
 topit::Vector<T>::Vector(std::initializer_list<T> il) : Vector(il.size())
 {
   size_t i = 0;
@@ -96,6 +244,31 @@ topit::Vector<T>::Vector(std::initializer_list<T> il) : Vector(il.size())
   {
     data_[i++] = val;
   }
+}
+
+template <class T>
+void topit::Vector<T>::reserve(size_t cap)
+{
+  if (capacity_ >= cap)
+  {
+    return;
+  }
+  T *d = new T[cap];
+  try
+  {
+    for (size_t i = 0; i < size_; ++i)
+    {
+      d[i] = data_[i];
+    }
+  }
+  catch (...)
+  {
+    delete[] d;
+    throw;
+  }
+  delete[] data_;
+  data_ = d;
+  capacity_ = cap;
 }
 
 template <class T>
