@@ -362,13 +362,13 @@ template < class T >
 void topit::Vector< T >::insert(size_t i, const Vector< T > &rhs, size_t beg, size_t end)
 {
   if (i > size_) {
-    throw std::out_of_range("Index more than size");
+    throw std::out_of_range("more than size");
   }
   if (end > rhs.getSize()) {
-    throw std::range_error("End index more than size of rhs");
+    throw std::range_error("end more than size");
   }
   if (end < beg) {
-    throw std::range_error("End less than begin");
+    throw std::range_error("begin more than end");
   }
   size_t add = end - beg;
   Vector< T > cpy(size_ + add);
@@ -508,9 +508,7 @@ topit::Vector< T >::Vector(std::initializer_list< T > il):
       new (data_ + size_++) T(std::move(v));
     }
   } catch (...) {
-    for (size_t i = 0; i < size_; ++i) {
-      (data_ + i)->~T();
-    }
+    clear(data_, size_);
     throw;
   }
 }
