@@ -66,10 +66,43 @@ bool testPopBack()
   return v.isEmpty();
 }
 
+bool testPopFront()
+{
+  topit::Vector< int > v;
+  v.pushBack(10);
+  v.pushBack(20);
+  v.popFront();
+  return v.getSize() == 1 && v[0] == 20;
+}
+
 bool testInitializerList()
 {
   topit::Vector< int > v{1, 2};
-  return v.getSize() == 2;
+  return v.getSize() == 2 && v[0] == 1 && v[1] == 2;
+}
+
+bool testIterator()
+{
+  topit::Vector< int > v{1, 2, 3};
+  int sum = 0;
+  for (auto it = v.begin(); it != v.end(); ++it) {
+    sum += *it;
+  }
+  return sum == 6;
+}
+
+bool testInsertIterator()
+{
+  topit::Vector< int > v{1, 3};
+  v.insert(v.begin() + 1, 2);
+  return v.getSize() == 3 && v[0] == 1 && v[1] == 2 && v[2] == 3;
+}
+
+bool testEraseIterator()
+{
+  topit::Vector< int > v{1, 2, 3};
+  v.erase(v.begin() + 1);
+  return v.getSize() == 2 && v[0] == 1 && v[1] == 3;
 }
 
 int main()
@@ -85,7 +118,11 @@ int main()
                     {"Capacity of vector should be correct", testCapacity},
                     {"Vector size should change when elements are added", testSize},
                     {"popBack should remove the last element", testPopBack},
-                    {"Initializer list should initialize vector with given values", testInitializerList}};
+                    {"popFront should remove the first element", testPopFront},
+                    {"Initializer list should initialize vector with given values", testInitializerList},
+                    {"Iterator should traverse vector", testIterator},
+                    {"Iterator insert should work", testInsertIterator},
+                    {"Iterator erase should work", testEraseIterator}};
 
   const size_t count = sizeof(tests) / sizeof(pair_t);
 
