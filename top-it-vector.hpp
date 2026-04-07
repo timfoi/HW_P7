@@ -640,8 +640,9 @@ size_t topit::Vector< T >::getCapacity() const noexcept
 template < class T >
 T &topit::Vector< T >::operator[](size_t id) noexcept
 {
-  assert(id < getSize());
-  return data_[id];
+  const Vector< T > *cthis = this;
+  const T &ret = (*cthis)[id];
+  return const_cast< T & >(ret);
 }
 
 template < class T >
@@ -664,7 +665,9 @@ void topit::Vector< T >::pushBack(const T &val)
 template < class T >
 void topit::Vector< T >::popBack()
 {
-  assert(size_ > 0);
+  if (size_ == 0) {
+    throw std::out_of_range("Vector is empty");
+  }
   (data_ + --size_)->~T();
 }
 
