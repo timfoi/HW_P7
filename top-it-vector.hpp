@@ -69,13 +69,17 @@ namespace topit
     size_t getSize() const noexcept;
     size_t getCapacity() const noexcept;
     void reserve(size_t cap);
+    void shrinkToFit();
 
     T &operator[](size_t id) noexcept;
     const T &operator[](size_t id) const noexcept;
 
     void pushBack(const T &val);
     void popBack();
+    void popFront();
     void pushFront(const T &val);
+    T &at(size_t id);
+    const T &at(size_t id) const;
 
     VIter< T > begin() noexcept;
     VIter< T > end() noexcept;
@@ -106,6 +110,32 @@ namespace topit
     void pushBackImpl(const T &);
     void reserve(size_t pos, size_t k);
   };
+  template < class T >
+  void clear(T *data, size_t to_pos);
+}
+
+template < class T >
+T &topit::Vector< T >::at(size_t id)
+{
+  const Vector< T > *cthis = this;
+  const T &ret = cthis->at(id);
+  return const_cast< T & >(ret);
+}
+
+template < class T >
+const T &topit::Vector< T >::at(size_t id) const
+{
+  if (getSize() && id < getSize()) {
+    return (*this)[id];
+  }
+  throw std::out_of_range("bad id");
+}
+
+template < class T >
+void topit::Vector< T >::shrinkToFit()
+{
+  Vector< T > cpy(*this);
+  swap(cpy);
 }
 
 template < class T >
@@ -253,36 +283,24 @@ topit::VCIter< T > topit::Vector< T >::cend() const noexcept
 template < class T >
 void topit::Vector< T >::insert(size_t i, const T &val)
 {
-  assert(i <= size_);
-
-  size_t newSize = size_ + 1;
-  size_t newCapacity = (capacity_ == 0 ? 1 : capacity_);
-
-  while (newCapacity < newSize) {
-    newCapacity *= 2;
+  if (i > size_) {
+    throw std::out_of_range("Index is more than size");
   }
-
-  T *newData = new T[newCapacity];
-
+  Vector< T > cpy(size_ + 1);
   try {
-    for (size_t j = 0; j < i; ++j) {
-      newData[j] = data_[j];
+    for (; cpy.size_ < i; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_]);
     }
-
-    newData[i] = val;
-
-    for (size_t j = i; j < size_; ++j) {
-      newData[j + 1] = data_[j];
+    new (cpy.data_ + cpy.size_++) T(val);
+    for (; cpy.size_ < size_ + 1; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_ - 1]);
     }
   } catch (...) {
-    delete[] newData;
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
     throw;
   }
-
-  delete[] data_;
-  data_ = newData;
-  size_ = newSize;
-  capacity_ = newCapacity;
+  swap(cpy);
 }
 
 template < class T >
@@ -315,13 +333,23 @@ void topit::Vector< T >::reserve(size_t cap)
 template < class T >
 void topit::Vector< T >::erase(size_t i)
 {
-  assert(i < size_);
-
-  for (size_t j = i; j + 1 < size_; ++j) {
-    data_[j] = data_[j + 1];
+  if (i >= size_) {
+    throw std::out_of_range("Index is more than size");
   }
-
-  --size_;
+  Vector< T > cpy(size_ - 1);
+  try {
+    for (; cpy.size_ < i; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_]);
+    }
+    for (; cpy.size_ < size_ - 1; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_ + 1]);
+    }
+  } catch (...) {
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
+    throw;
+  }
+  swap(cpy);
 }
 
 template < class T >
@@ -333,64 +361,64 @@ void topit::Vector< T >::pushBackImpl(const T &val)
 template < class T >
 void topit::Vector< T >::insert(size_t i, const Vector< T > &rhs, size_t beg, size_t end)
 {
-  assert(i <= size_);
-  assert(beg <= end);
-  assert(end <= rhs.size_);
-
-  size_t count = end - beg;
-  if (count == 0) {
-    return;
+  if (i > size_) {
+    throw std::out_of_range("Index more than size");
   }
-
-  size_t newSize = size_ + count;
-  size_t newCapacity = (capacity_ == 0 ? 1 : capacity_);
-
-  while (newCapacity < newSize) {
-    newCapacity *= 2;
+  if (end > rhs.getSize()) {
+    throw std::range_error("End index more than size of rhs");
   }
-
-  T *newData = new T[newCapacity];
-
+  if (end < beg) {
+    throw std::range_error("End less than begin");
+  }
+  size_t add = end - beg;
+  Vector< T > cpy(size_ + add);
   try {
-    for (size_t j = 0; j < i; ++j) {
-      newData[j] = data_[j];
+    for (; cpy.size_ < i; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_]);
     }
-
-    for (size_t j = 0; j < count; ++j) {
-      newData[i + j] = rhs[beg + j];
+    for (; cpy.size_ < i + add; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T(rhs[beg + cpy.size_ - i]);
     }
-
-    for (size_t j = i; j < size_; ++j) {
-      newData[j + count] = data_[j];
+    for (; cpy.size_ < size_ + add; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_ - add]);
     }
   } catch (...) {
-    delete[] newData;
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
     throw;
   }
-
-  delete[] data_;
-  data_ = newData;
-  size_ = newSize;
-  capacity_ = newCapacity;
+  swap(cpy);
 }
 
 template < class T >
 void topit::Vector< T >::erase(size_t beg, size_t end)
 {
-  assert(beg <= end);
-  assert(end <= size_);
-
-  size_t count = end - beg;
-  if (count == 0) {
-    return;
+  if (!size_) {
+    throw std::out_of_range("empty vector");
   }
-
-  for (size_t j = beg; j + count < size_; ++j) {
-    data_[j] = data_[j + count];
+  if (end > size_) {
+    throw std::range_error("end more than size");
   }
-
-  size_ -= count;
+  if (beg > end) {
+    throw std::range_error("Beg more than end");
+  }
+  size_t rem = end - beg;
+  Vector< T > cpy(size_ - rem);
+  try {
+    for (; cpy.size_ < beg; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_]);
+    }
+    for (; cpy.size_ < size_ - rem; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_ + rem]);
+    }
+  } catch (...) {
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
+    throw;
+  }
+  swap(cpy);
 }
+
 template < class T >
 void topit::Vector< T >::insert(VIter< T > pos, const T &value)
 {
@@ -399,90 +427,60 @@ void topit::Vector< T >::insert(VIter< T > pos, const T &value)
 template < class T >
 void topit::Vector< T >::insert(VIter< T > pos, const T &value, size_t count)
 {
-  assert(pos.pos_ <= size_);
-
-  if (count == 0) {
-    return;
-  }
-
-  size_t newSize = size_ + count;
-  size_t newCapacity = (capacity_ == 0 ? 1 : capacity_);
-
-  while (newCapacity < newSize) {
-    newCapacity *= 2;
-  }
-
-  T *newData = new T[newCapacity];
-
+  Vector< T > cpy(size_ + count);
   try {
-    for (size_t j = 0; j < pos.pos_; ++j) {
-      newData[j] = data_[j];
+    for (; cpy.size_ < pos.pos_; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this).at(cpy.size_));
     }
-
-    for (size_t j = 0; j < count; ++j) {
-      newData[pos.pos_ + j] = value;
+    for (size_t i = 0; i < count; ++i) {
+      new (cpy.data_ + cpy.size_++) T(value);
     }
-
-    for (size_t j = pos.pos_; j < size_; ++j) {
-      newData[j + count] = data_[j];
+    for (; pos != (*this).end(); ++pos) {
+      new (cpy.data_ + cpy.size_++) T(*pos);
     }
   } catch (...) {
-    delete[] newData;
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
     throw;
   }
-
-  delete[] data_;
-  data_ = newData;
-  size_ = newSize;
-  capacity_ = newCapacity;
+  swap(cpy);
 }
+
 template < class T >
 template < class FwdIterator >
 void topit::Vector< T >::insert(VIter< T > pos, FwdIterator beg, FwdIterator end)
 {
-  assert(pos.pos_ <= size_);
-
   size_t count = 0;
-  for (FwdIterator it = beg; it != end; ++it) {
+  auto cpyBeg = beg;
+  while (cpyBeg != end) {
     ++count;
+    ++cpyBeg;
   }
-
-  if (count == 0) {
-    return;
-  }
-
-  size_t newSize = size_ + count;
-  size_t newCapacity = (capacity_ == 0 ? 1 : capacity_);
-
-  while (newCapacity < newSize) {
-    newCapacity *= 2;
-  }
-
-  T *newData = new T[newCapacity];
-
+  Vector< T > cpy(size_ + count);
   try {
-    for (size_t j = 0; j < pos.pos_; ++j) {
-      newData[j] = data_[j];
+    for (; cpy.size_ < pos.pos_; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this).at(cpy.size_));
     }
-
-    size_t index = pos.pos_;
-    for (FwdIterator it = beg; it != end; ++it) {
-      newData[index] = *it;
-      ++index;
+    for (; beg != end; ++beg) {
+      new (cpy.data_ + cpy.size_++) T(*beg);
     }
-
-    for (size_t j = pos.pos_; j < size_; ++j) {
-      newData[j + count] = data_[j];
+    for (; pos != (*this).end(); ++pos) {
+      new (cpy.data_ + cpy.size_++) T(*pos);
     }
   } catch (...) {
-    delete[] newData;
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
     throw;
   }
+  swap(cpy);
+}
 
-  delete[] data_;
-  data_ = newData;
-  size_ = newSize;
-  capacity_ = newCapacity;
+template < class T >
+void topit::clear(T *data, size_t to_pos)
+{
+  for (size_t j = 0; j < to_pos; ++j) {
+    (data + j)->~T();
+  }
 }
 
 template < class T >
@@ -586,12 +584,9 @@ topit::Vector< T >::Vector(Vector< T > &&rhs) noexcept:
 }
 
 template < class T >
-topit::Vector< T >::~Vector()
+topit::Vector< T >::Vector::~Vector()
 {
-  for (size_t i = 0; i < size_; ++i) {
-    (data_ + i)->~T();
-  }
-  ::operator delete(data_);
+  clear(data_, size_);
 }
 
 template < class T >
@@ -676,35 +671,29 @@ void topit::Vector< T >::popBack()
 }
 
 template < class T >
+void topit::Vector< T >::popFront()
+{
+  if (size_ == 0) {
+    throw std::out_of_range("Vector is empty");
+  }
+  erase(0);
+}
+
+template < class T >
 void topit::Vector< T >::pushFront(const T &val)
 {
-  if (size_ == capacity_) {
-    size_t newCapacity = (capacity_ == 0 ? 1 : capacity_ * 2);
-    T *newData = new T[newCapacity];
-
-    try {
-      newData[0] = val;
-      for (size_t i = 0; i < size_; ++i) {
-        newData[i + 1] = data_[i];
-      }
-    } catch (...) {
-      delete[] newData;
-      throw;
+  Vector< T > cpy(size_ + 1);
+  try {
+    new (cpy.data_) T(val);
+    for (cpy.size_ = 1; cpy.size_ < size_ + 1; ++cpy.size_) {
+      new (cpy.data_ + cpy.size_) T((*this)[cpy.size_ - 1]);
     }
-
-    delete[] data_;
-    data_ = newData;
-    capacity_ = newCapacity;
-    ++size_;
-    return;
+  } catch (...) {
+    clear(cpy.data_, cpy.size_);
+    ::operator delete(cpy.data_);
+    throw;
   }
-
-  for (size_t i = size_; i > 0; --i) {
-    data_[i] = data_[i - 1];
-  }
-
-  data_[0] = val;
-  ++size_;
+  swap(cpy);
 }
 
 #endif
